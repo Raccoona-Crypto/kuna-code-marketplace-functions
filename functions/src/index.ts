@@ -2,10 +2,10 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
 admin.initializeApp();
-let db = admin.firestore();
+const db = admin.firestore();
 
 export const getAllOffers = functions.https.onRequest((request, response) => {
-    var arr = [];
+    const arr = [];
     db.collection("offers").get().then(function (querySnapshot) {
         querySnapshot.forEach(function (doc) {
             console.log(doc.id, " => ", doc.data());
@@ -27,7 +27,7 @@ export const addOffer = functions.https.onRequest((request, response) => {
         currency: requestJson.currency,
         security_token: requestJson.security_token,
         side: requestJson.side,
-        user: requestJson.user
+        user: requestJson.user,
     };
     db.collection("offers").add(offerObj)
         .then(function (docRef) {
