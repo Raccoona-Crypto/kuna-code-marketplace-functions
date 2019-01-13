@@ -1,40 +1,41 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import * as uuid from 'uuid';
 
 admin.initializeApp();
 const db = admin.firestore();
 
-export const getAllOffers = functions.https.onRequest((request, response) => {
-    const arr = [];
-    db.collection("offers").get().then(function (querySnapshot) {
-        querySnapshot.forEach(function (doc) {
-            console.log(doc.id, " => ", doc.data());
-            arr.push(doc.data());
-        });
-        response.send(arr);
-    }).catch(function (error) {
-        console.error("Error showing all offers: ", error);
-    });
+export const getAllOffers = functions.https.onRequest(async (request, response) => {
+    let snapshot = await db.collection('offers').get();
+
+    response.send(snapshot.docs.map((obj) => obj.data()));
 });
 
-export const addOffer = functions.https.onRequest((request, response) => {
-    let requestJson = request.body;
+export const addOffer = functions.https.onRequest(async (request, response) => {
+    const { body } = request;
+
     let offerObj = {
-        amount: requestJson.amount,
-        comment: requestJson.comment,
-        commission: requestJson.commission,
-        creation_time: requestJson.creation_time,
-        currency: requestJson.currency,
-        security_token: requestJson.security_token,
-        side: requestJson.side,
-        user: requestJson.user,
+        amount: body.amount,
+        comment: body.comment,
+        commission: body.commission,
+        currency: body.currency,
+        side: body.side,
+
+        /** @TODO need change to user_id */
+        user: body.user,
+
+        creation_time: new Date().toISOString(),
+        security_token: uuid.v4(),
     };
-    db.collection("offers").add(offerObj)
-        .then(function (docRef) {
-            console.log("Document written with ID: ", docRef.id);
-        })
-        .catch(function (error) {
-            console.error("Error adding document: ", error);
+
+    try {
+        const docRef = await db.collection('offers').add(offerObj);
+        console.log('Document written with ID: ', docRef.id);
+        response.send({
+            token: offerObj.security_token,
         });
-    response.end();
+    } catch (error) {
+        console.error(error);
+        response.sendStatus(500);
+    }
 });
