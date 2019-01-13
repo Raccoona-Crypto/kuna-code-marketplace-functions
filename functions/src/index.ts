@@ -4,17 +4,9 @@ import * as admin from 'firebase-admin';
 admin.initializeApp();
 let db = admin.firestore();
 
-export const getAllOffers = functions.https.onRequest((request, response) => {
-    var arr = [];
-    db.collection("offers").get().then(function (querySnapshot) {
-        querySnapshot.forEach(function (doc) {
-            console.log(doc.id, " => ", doc.data());
-            arr.push(doc.data());
-        });
-        response.send(arr);
-    }).catch(function (error) {
-        console.error("Error showing all offers: ", error);
-    });
+export const getAllOffers = functions.https.onRequest(async (request, response) => {
+    let snapshot = await db.collection("offers").get();
+    response.send(snapshot.docs.map((obj) => obj.data()));
 });
 
 export const addOffer = functions.https.onRequest((request, response) => {
