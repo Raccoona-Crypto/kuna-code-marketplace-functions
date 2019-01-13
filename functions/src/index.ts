@@ -1,32 +1,59 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import * as uuid from 'uuid';
 
 admin.initializeApp();
 let db = admin.firestore();
 
+function getOfferObj(body) {
+    return {
+        amount: body.amount,
+        comment: body.comment,
+        commission: body.commission,
+        currency: body.currency,
+        side: body.side,
+        user_id: body.user_id,
+        creation_time: new Date().toISOString(),
+        security_token: uuid.v4()
+    };
+}
+
 export const getAllOffers = functions.https.onRequest(async (request, response) => {
-    let snapshot = await db.collection("offers").get();
+    let snapshot = await db.collection('offers').get();
+
     response.send(snapshot.docs.map((obj) => obj.data()));
 });
 
-export const addOffer = functions.https.onRequest((request, response) => {
-    let requestJson = request.body;
-    let offerObj = {
-        amount: requestJson.amount,
-        comment: requestJson.comment,
-        commission: requestJson.commission,
-        creation_time: requestJson.creation_time,
-        currency: requestJson.currency,
-        security_token: requestJson.security_token,
-        side: requestJson.side,
-        user: requestJson.user
-    };
-    db.collection("offers").add(offerObj)
-        .then(function (docRef) {
-            console.log("Document written with ID: ", docRef.id);
-        })
-        .catch(function (error) {
-            console.error("Error adding document: ", error);
+export const addOffer = functions.https.onRequest(async (request, response) => {
+    const {body} = request;
+
+    let offerObj = getOfferObj(body);
+
+    try {
+        const docRef = await db.collection('offers').add(offerObj);
+        console.log('Document written with ID: ', docRef.id);
+        response.send({
+            token: offerObj.security_token,
         });
-    response.end();
+    } catch (error) {
+        console.error(error);
+        response.sendStatus(500);
+    }
+});
+
+export const updateOffer = functions.https.onRequest(async (request, response) => {
+    let id = request.params.id;
+    const {body} = request;
+
+    let offerObj = getOfferObj(body);
+
+    try {
+        const docRef = await db.collection('offers').doc(id).set(offerObj);
+        response.send({
+            token: offerObj.security_token,
+        });
+    } catch (error) {
+        console.error(error);
+        response.sendStatus(500);
+    }
 });
