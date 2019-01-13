@@ -42,7 +42,7 @@ export const addOffer = functions.https.onRequest(async (request, response) => {
 });
 
 export const updateOffer = functions.https.onRequest(async (request, response) => {
-    let id = request.params.id;
+    let id = request.params[0];
     const {body} = request;
 
     let offerObj = getOfferObj(body);
