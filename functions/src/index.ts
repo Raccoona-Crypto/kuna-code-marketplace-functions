@@ -9,11 +9,15 @@ const db = admin.firestore();
 export const getAllOffers = functions.https.onRequest(async (request, response) => {
     const snapshot = await db.collection('offers').get();
 
-    response.send(
+    const result = Promise.all(
         snapshot.docs.map(
-            (obj: any) => OfferUtils.mapOfferModelResponse(obj.data()),
+            (obj: admin.firestore.DocumentSnapshot) => OfferUtils.mapOfferModelResponse(obj),
         ),
     );
+
+    response.send({
+        offers: await result,
+    });
 });
 
 
@@ -39,13 +43,13 @@ export const updateOffer = functions.https.onRequest(async (request, response) =
     const id = request.params[0];
     const { body } = request;
 
-    const offer = await db.collection('offers').doc(id).get();
-    if (!offer) {
+    const offer: admin.firestore.DocumentSnapshot = await db.collection('offers').doc(id).get();
+    if (!offer.exists) {
         response.sendStatus(404);
         return;
     }
 
-    const offerData: OfferUtils.TOffer = offer.data() as OfferUtils.TOffer;
+    const offerData: OfferUtils.Offer = offer.data() as OfferUtils.Offer;
 
     // @TODO Need to check it.
     // if (offerData.security_token !== request.query.security_token) {

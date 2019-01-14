@@ -1,6 +1,7 @@
 import * as uuid from 'uuid';
+import * as admin from 'firebase-admin';
 
-export type TOffer = {
+export type Offer = {
     amount: number;
     comment: string;
     commission?: number;
@@ -13,7 +14,7 @@ export type TOffer = {
 };
 
 
-export type TOfferRequestBody = {
+export type OfferRequestBody = {
     amount: number;
     comment: string;
     commission?: number;
@@ -23,7 +24,7 @@ export type TOfferRequestBody = {
 };
 
 
-export function mapOfferObject(offer: TOffer, body: TOfferRequestBody): TOffer {
+export function mapOfferObject(offer: Offer, body: OfferRequestBody): Offer {
     offer.amount = body.amount;
     offer.comment = body.comment;
     offer.commission = body.commission;
@@ -34,17 +35,19 @@ export function mapOfferObject(offer: TOffer, body: TOfferRequestBody): TOffer {
     return offer;
 }
 
-export function createOffer(body: TOfferRequestBody) {
+export function createOffer(body: OfferRequestBody) {
     return mapOfferObject(
         {
             creation_time: new Date().toISOString(),
             security_token: uuid.v4(),
-        } as TOffer,
+        } as Offer,
         body,
     );
 }
 
-export function mapOfferModelResponse(modelData: any): any {
+export async function mapOfferModelResponse(model: admin.firestore.DocumentSnapshot): Promise<any> {
+    const modelData = model.data();
+
     const response: any = {
         comment: modelData.comment,
         side: modelData.side,
@@ -56,7 +59,11 @@ export function mapOfferModelResponse(modelData: any): any {
 
     if (modelData.user) {
         try {
-            const userData = modelData.user.data();
+            const userModel = await modelData.user.get();
+            if (!userModel) {
+                throw new Error('User not found');
+            }
+            const userData = userModel.get();
 
             response.user = {
                 name: userData.name,
@@ -64,7 +71,7 @@ export function mapOfferModelResponse(modelData: any): any {
             };
         } catch (error) {
             console.error(error);
-            console.warn('User object exists, but!', modelData.user);
+            console.warn('User object exists, but!', typeof modelData.user, modelData.user);
         }
     }
 
