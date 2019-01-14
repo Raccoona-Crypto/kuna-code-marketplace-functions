@@ -2,13 +2,12 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
 import * as OfferUtils from './offer-utils';
-import { TOffer } from './offer-utils';
 
 admin.initializeApp();
-let db = admin.firestore();
+const db = admin.firestore();
 
 export const getAllOffers = functions.https.onRequest(async (request, response) => {
-    let snapshot = await db.collection('offers').get();
+    const snapshot = await db.collection('offers').get();
 
     response.send(
         snapshot.docs.map(
@@ -21,7 +20,7 @@ export const getAllOffers = functions.https.onRequest(async (request, response) 
 export const addOffer = functions.https.onRequest(async (request, response) => {
     const { body } = request;
 
-    let offerObj = OfferUtils.createOffer(body);
+    const offerObj = OfferUtils.createOffer(body);
 
     try {
         const docRef = await db.collection('offers').add(offerObj);
@@ -37,7 +36,7 @@ export const addOffer = functions.https.onRequest(async (request, response) => {
 
 
 export const updateOffer = functions.https.onRequest(async (request, response) => {
-    let id = request.params[0];
+    const id = request.params[0];
     const { body } = request;
 
     const offer = await db.collection('offers').doc(id).get();
@@ -46,7 +45,7 @@ export const updateOffer = functions.https.onRequest(async (request, response) =
         return;
     }
 
-    const offerData: TOffer = offer.data() as TOffer;
+    const offerData: OfferUtils.TOffer = offer.data() as OfferUtils.TOffer;
 
     // @TODO Need to check it.
     // if (offerData.security_token !== request.query.security_token) {
@@ -57,7 +56,7 @@ export const updateOffer = functions.https.onRequest(async (request, response) =
     const updatedObject = OfferUtils.mapOfferObject(offerData, body);
 
     try {
-        const docRef = await db.collection('offers').doc(id).set(updatedObject);
+        await db.collection('offers').doc(id).set(updatedObject);
         response.send(200);
     } catch (error) {
         console.error(error);

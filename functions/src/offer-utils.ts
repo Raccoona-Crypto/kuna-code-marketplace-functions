@@ -55,12 +55,17 @@ export function mapOfferModelResponse(modelData: any): any {
     };
 
     if (modelData.user) {
-        const userData = modelData.user.data();
+        try {
+            const userData = modelData.user.data();
 
-        response.user = {
-            name: userData.name,
-            contact: userData.contact,
-        };
+            response.user = {
+                name: userData.name,
+                contact: userData.contact,
+            };
+        } catch (error) {
+            console.error(error);
+            console.warn('User object exists, but!', modelData.user);
+        }
     }
 
     return response;
