@@ -60,7 +60,7 @@ export const updateOffer = functions.https.onRequest(async (request, response) =
     const updatedObject = OfferUtils.mapOfferObject(offerData, body);
 
     try {
-        await db.collection('offers').doc(id).set(updatedObject);
+        await db.collection('offers').doc(id).update(updatedObject);
         response.send(200);
     } catch (error) {
         console.error(error);

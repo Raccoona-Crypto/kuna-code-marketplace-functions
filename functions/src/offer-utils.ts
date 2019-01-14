@@ -57,17 +57,18 @@ export async function mapOfferModelResponse(model: admin.firestore.DocumentSnaps
         creation_time: modelData.creation_time,
     };
 
-    if (modelData.user) {
+    if (modelData.user && typeof modelData.user === 'object') {
         try {
-            const userModel = await modelData.user.get();
-            if (!userModel) {
+            const userRef: admin.firestore.DocumentReference = modelData.user;
+            if (!userRef) {
                 throw new Error('User not found');
             }
-            const userData = userModel.get();
+
+            const userData = await userRef.get();
 
             response.user = {
-                name: userData.name,
-                contact: userData.contact,
+                name: userData.data().name,
+                contact: userData.data().contact,
             };
         } catch (error) {
             console.error(error);
