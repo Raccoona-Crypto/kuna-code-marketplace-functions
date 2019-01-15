@@ -23,6 +23,28 @@ export type OfferRequestBody = {
     user_id: string;
 };
 
+export type Rating = {
+    score: number;
+    comment: string;
+    user_id: string;
+
+    creation_time?: string; // ISO String Format
+    security_token?: string;
+};
+
+export type RatingRequestBody = {
+    score: number;
+    comment: string;
+    user_id: string;
+};
+
+export type User = {
+    contact: string;
+    num_of_ratings: number;
+    name: string;
+    avg_rating: number;
+};
+
 
 export function mapOfferObject(offer: Offer, body: OfferRequestBody): Offer {
     offer.amount = body.amount;
@@ -35,12 +57,30 @@ export function mapOfferObject(offer: Offer, body: OfferRequestBody): Offer {
     return offer;
 }
 
+export function mapRatingObject(rating: Rating, body: RatingRequestBody): Rating {
+    rating.comment = body.comment;
+    rating.user_id = body.user_id;
+    rating.score = body.score;
+
+    return rating;
+}
+
 export function createOffer(body: OfferRequestBody) {
     return mapOfferObject(
         {
             creation_time: new Date().toISOString(),
             security_token: uuid.v4(),
         } as Offer,
+        body,
+    );
+}
+
+export function createRating(body: RatingRequestBody) {
+    return mapRatingObject(
+        {
+            creation_time: new Date().toISOString(),
+            security_token: uuid.v4(),
+        } as Rating,
         body,
     );
 }
@@ -69,6 +109,9 @@ export async function mapOfferModelResponse(model: admin.firestore.DocumentSnaps
             response.user = {
                 name: userData.data().name,
                 contact: userData.data().contact,
+                avg_rating: userData.data().avg_rating,
+                num_of_ratings: userData.data().num_of_ratings
+
             };
         } catch (error) {
             console.error(error);
