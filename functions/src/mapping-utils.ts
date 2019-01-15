@@ -9,7 +9,8 @@ export type Offer = {
     side: 'sell' | 'buy';
     user_id: string;
 
-    creation_time?: string; // ISO String Format
+    creation_time?: admin.firestore.Timestamp;
+    delete_time: admin.firestore.Timestamp | null;
     security_token?: string;
 };
 
@@ -28,7 +29,7 @@ export type Rating = {
     comment: string;
     user_id: string;
 
-    creation_time?: string; // ISO String Format
+    creation_time?: admin.firestore.Timestamp;
     security_token?: string;
 };
 
@@ -57,6 +58,18 @@ export function mapOfferObject(offer: Offer, body: OfferRequestBody): Offer {
     return offer;
 }
 
+export function createOffer(body: OfferRequestBody) {
+    return mapOfferObject(
+        {
+            delete_time: null,
+            creation_time: admin.firestore.Timestamp.now(),
+            security_token: uuid.v4(),
+        } as Offer,
+        body,
+    );
+}
+
+
 export function mapRatingObject(rating: Rating, body: RatingRequestBody): Rating {
     rating.comment = body.comment;
     rating.user_id = body.user_id;
@@ -65,34 +78,29 @@ export function mapRatingObject(rating: Rating, body: RatingRequestBody): Rating
     return rating;
 }
 
-export function createOffer(body: OfferRequestBody) {
-    return mapOfferObject(
-        {
-            creation_time: new Date().toISOString(),
-            security_token: uuid.v4(),
-        } as Offer,
-        body,
-    );
-}
-
 export function createRating(body: RatingRequestBody) {
     return mapRatingObject(
         {
-            creation_time: new Date().toISOString(),
+            creation_time: admin.firestore.Timestamp.now(),
+
+            /** @TODO Why, Karl, why?????? */
             security_token: uuid.v4(),
         } as Rating,
         body,
     );
 }
 
+
+
 export async function mapOfferModelResponse(model: admin.firestore.DocumentSnapshot): Promise<any> {
     const modelData = model.data();
 
     const response: any = {
-        comment: modelData.comment,
-        side: modelData.side,
+        id: model.id,
         amount: modelData.amount,
         currency: modelData.currency,
+        comment: modelData.comment,
+        side: modelData.side,
         commission: modelData.commission,
         creation_time: modelData.creation_time,
     };
@@ -110,7 +118,7 @@ export async function mapOfferModelResponse(model: admin.firestore.DocumentSnaps
                 name: userData.data().name,
                 contact: userData.data().contact,
                 avg_rating: userData.data().avg_rating,
-                num_of_ratings: userData.data().num_of_ratings
+                num_of_ratings: userData.data().num_of_ratings,
 
             };
         } catch (error) {

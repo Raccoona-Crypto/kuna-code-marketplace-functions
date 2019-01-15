@@ -1,13 +1,14 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-
 import * as MappingUtils from './mapping-utils';
 
 admin.initializeApp();
 const db = admin.firestore();
 
 export const getAllOffers = functions.https.onRequest(async (request, response) => {
-    const snapshot = await db.collection('offers').get();
+    const snapshot = await db.collection('offers')
+        .where('delete_time', '==', null)
+        .get();
 
     const result = Promise.all(
         snapshot.docs.map(
@@ -22,18 +23,15 @@ export const getAllOffers = functions.https.onRequest(async (request, response) 
 
 
 export const addOffer = functions.https.onRequest(async (request, response) => {
-    const id = request.params[0];
-    if (!id) {
-        throw new Error('Id is empty');
-    }
-    const {body} = request;
-
+    const { body } = request;
     const offerObj = MappingUtils.createOffer(body);
 
     try {
-        const docRef = await db.collection('offers').doc(id).set(offerObj);
-        console.log('Document written with ID: ', id);
+        const docRef = await db.collection('offers').add(offerObj);
+        console.log('Document written with ID: ', docRef.id);
+
         response.send({
+            id: docRef.id,
             token: offerObj.security_token,
         });
     } catch (error) {
@@ -48,7 +46,7 @@ export const updateOffer = functions.https.onRequest(async (request, response) =
     if (!id) {
         throw new Error('Id is empty');
     }
-    const {body} = request;
+    const { body } = request;
 
     const offer: admin.firestore.DocumentSnapshot = await db.collection('offers').doc(id).get();
     if (!offer.exists) {
@@ -57,54 +55,46 @@ export const updateOffer = functions.https.onRequest(async (request, response) =
     }
 
     const offerData: MappingUtils.Offer = offer.data() as MappingUtils.Offer;
-
-    // @TODO Need to check it.
-    // if (offerData.security_token !== request.query.security_token) {
-    //     response.sendStatus(403);
-    //     return;
-    // }
-
     const updatedObject = MappingUtils.mapOfferObject(offerData, body);
 
     try {
         await db.collection('offers').doc(id).update(updatedObject);
-        response.send(200);
+        response.sendStatus(204);
     } catch (error) {
         console.error(error);
         response.sendStatus(500);
     }
 });
+
 
 export const deleteOffer = functions.https.onRequest(async (request, response) => {
     const id = request.params[0];
     if (!id) {
         throw new Error('Id is empty');
     }
-    const {body} = request;
-
-    const offerObj = MappingUtils.createOffer(body);
 
     try {
-        const docRef = await db.collection('offers').doc(id).delete();
-        console.log('Document deleted with ID: ', id);
-        response.send({
-            token: offerObj.security_token,
+        await db.collection('offers').doc(id).update({
+            delete_time: admin.firestore.Timestamp.now(),
         });
+
+        console.log('Document deleted with ID: ', id);
+        response.sendStatus(204);
     } catch (error) {
         console.error(error);
         response.sendStatus(500);
     }
 });
 
+
 export const addRating = functions.https.onRequest(async (request, response) => {
     const id = request.params[0];
     if (!id) {
         throw new Error('Id is empty');
     }
-    const {body} = request;
 
+    const { body } = request;
     const rating = MappingUtils.createRating(body);
-
 
     try {
         const docRef = await db.collection('users').doc(id).collection('ratings').add(rating);
@@ -118,6 +108,7 @@ export const addRating = functions.https.onRequest(async (request, response) => 
     }
 });
 
+
 export const updateRating = functions.https.onRequest(async (request, response) => {
     const userId = request.params[0];
     if (!userId) {
@@ -127,7 +118,7 @@ export const updateRating = functions.https.onRequest(async (request, response) 
     if (!ratingId) {
         throw new Error('ratingId is empty');
     }
-    const {body} = request;
+    const { body } = request;
 
     const rating: admin.firestore.DocumentSnapshot = await db.collection('users').doc(userId).collection("ratings").doc(ratingId).get();
     if (!rating.exists) {
@@ -160,17 +151,17 @@ export const deleteRating = functions.https.onRequest(async (request, response) 
     if (!userId) {
         throw new Error('userId is empty');
     }
+
     const ratingId = request.params[1];
     if (!ratingId) {
         throw new Error('ratingId is empty');
     }
-    const {body} = request;
 
+    const { body } = request;
     const rating = MappingUtils.createRating(body);
 
-
     try {
-        const docRef = await db.collection('users').doc(userId).collection("ratings").doc(ratingId).delete();
+        await db.collection('users').doc(userId).collection('ratings').doc(ratingId).delete();
         console.log('Rating deleted with ID: ', ratingId);
         response.send({
             token: rating.security_token,
@@ -181,24 +172,24 @@ export const deleteRating = functions.https.onRequest(async (request, response) 
     }
 });
 
+
 export const aggregateRatings = functions.firestore.document('users/{userId}/ratings/{ratingId}')
     .onWrite((change, context) => {
-        const rating = change.after.data() as  MappingUtils.Rating;
+        const rating = change.after.data() as MappingUtils.Rating;
         // Get value of the newly added rating
-        const score = rating.score;
-        console.log(rating);
+        const score = +rating.score;
 
         // Get a reference to the restaurant
         const userRef = db.collection('users').doc(context.params.userId);
 
         // Update aggregations in a transaction
-        return db.runTransaction(transaction => {
-            return transaction.get(userRef).then(userDoc => {
-                // Compute new number of ratings
+        return db.runTransaction(
+            async (transaction) => {
+                const userDoc = await transaction.get(userRef);
 
-                const user = userDoc.data() as MappingUtils.User;
-                const numOfRatings = user.num_of_ratings;
-                const avgRating = user.avg_rating;
+                const userData = userDoc.data() as MappingUtils.User;
+                const avgRating = userData.avg_rating || 0;
+                const numOfRatings = userData.num_of_ratings || 0;
 
                 const newNumRatings = numOfRatings + 1;
 
@@ -209,10 +200,11 @@ export const aggregateRatings = functions.firestore.document('users/{userId}/rat
                 console.log(oldRatingTotal);
                 console.log(newAvgRating);
                 // Update restaurant info
+
                 return transaction.update(userRef, {
                     avg_rating: newAvgRating,
-                    num_of_ratings: newNumRatings
+                    num_of_ratings: newNumRatings,
                 });
-            });
-        });
+            },
+        );
     });
