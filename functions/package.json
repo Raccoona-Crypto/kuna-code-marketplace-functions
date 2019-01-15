@@ -16,6 +16,7 @@
         "firebase-functions": "2.1.0"
     },
     "devDependencies": {
+        "@types/uuid": "3.4.4",
         "tslint": "5.8.0",
         "typescript": "2.8.4"
     },
