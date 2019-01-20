@@ -7,7 +7,7 @@ export type Offer = {
     commission?: number;
     currency: string;
     side: 'sell' | 'buy';
-    user_id: string;
+    user: admin.firestore.DocumentReference;
 
     creation_time?: admin.firestore.Timestamp;
     delete_time: admin.firestore.Timestamp | null;
@@ -21,7 +21,11 @@ export type OfferRequestBody = {
     commission?: number;
     currency: string;
     side: 'sell' | 'buy';
-    user_id: string;
+    user: {
+        id: string;
+        name: string;
+        telegram: string;
+    }
 };
 
 export type Rating = {
@@ -49,21 +53,21 @@ export type User = {
 
 export function mapOfferObject(offer: Offer, body: OfferRequestBody): Offer {
     offer.amount = body.amount;
-    offer.comment = body.comment;
-    offer.commission = body.commission;
     offer.currency = body.currency;
     offer.side = body.side;
-    offer.user_id = body.user_id;
+    offer.comment = body.comment || '';
+    offer.commission = body.commission || 0;
 
     return offer;
 }
 
-export function createOffer(body: OfferRequestBody) {
+export function createOffer(body: OfferRequestBody, user: admin.firestore.DocumentSnapshot) {
     return mapOfferObject(
         {
             delete_time: null,
             creation_time: admin.firestore.Timestamp.now(),
             security_token: uuid.v4(),
+            user: user.ref,
         } as Offer,
         body,
     );
@@ -91,9 +95,8 @@ export function createRating(body: RatingRequestBody) {
 }
 
 
-
 export async function mapOfferModelResponse(model: admin.firestore.DocumentSnapshot): Promise<any> {
-    const modelData = model.data();
+    const modelData = model.data() as Offer;
 
     const response: any = {
         id: model.id,
@@ -102,7 +105,9 @@ export async function mapOfferModelResponse(model: admin.firestore.DocumentSnaps
         comment: modelData.comment,
         side: modelData.side,
         commission: modelData.commission,
-        creation_time: modelData.creation_time,
+        creation_time: modelData.creation_time
+            ? modelData.creation_time.toDate().toISOString()
+            : undefined,
     };
 
     if (modelData.user && typeof modelData.user === 'object') {

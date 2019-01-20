@@ -11,9 +11,10 @@
     },
     "main": "lib/index.js",
     "dependencies": {
-        "uuid": "3.3.2",
         "firebase-admin": "6.0.0",
-        "firebase-functions": "2.1.0"
+        "firebase-functions": "2.1.0",
+        "lodash": "^4.17.11",
+        "uuid": "3.3.2"
     },
     "devDependencies": {
         "@types/uuid": "3.4.4",
