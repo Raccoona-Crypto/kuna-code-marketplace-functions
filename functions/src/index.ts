@@ -1,9 +1,11 @@
+import { get } from 'lodash';
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as MappingUtils from './mapping-utils';
 
 admin.initializeApp();
 const db = admin.firestore();
+
 
 export const getAllOffers = functions.https.onRequest(async (request, response) => {
     const snapshot = await db.collection('offers')
@@ -44,7 +46,7 @@ export const addOffer = functions.https.onRequest(async (request, response) => {
 export const updateOffer = functions.https.onRequest(async (request, response) => {
     const id = request.params[0];
     if (!id) {
-        throw new Error('Id is empty');
+        throw new Error('ID is empty');
     }
     const { body } = request;
 
@@ -68,13 +70,29 @@ export const updateOffer = functions.https.onRequest(async (request, response) =
 
 
 export const deleteOffer = functions.https.onRequest(async (request, response) => {
-    const id = request.params[0];
+    const id = get(request.query, 'id');
     if (!id) {
-        throw new Error('Id is empty');
+        response.sendStatus(400);
+        return;
+    }
+
+    const securityToken = get(request.query, 'token');
+
+    const docReference = db.collection('offers').doc(id);
+    const offer = await docReference.get();
+
+    if (!offer.exists) {
+        response.sendStatus(404);
+        return;
+    }
+
+    if (securityToken !== offer.get('security_token')) {
+        response.sendStatus(401);
+        return;
     }
 
     try {
-        await db.collection('offers').doc(id).update({
+        await docReference.update({
             delete_time: admin.firestore.Timestamp.now(),
         });
 
@@ -90,7 +108,7 @@ export const deleteOffer = functions.https.onRequest(async (request, response) =
 export const addRating = functions.https.onRequest(async (request, response) => {
     const id = request.params[0];
     if (!id) {
-        throw new Error('Id is empty');
+        throw new Error('ID is empty');
     }
 
     const { body } = request;
