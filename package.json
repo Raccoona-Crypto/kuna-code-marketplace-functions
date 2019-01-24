@@ -1,11 +1,11 @@
 {
     "name": "kuna-code-marketplace-functions",
     "scripts": {
-        "build": "cd ./funcions && npm run build",
-        "serve": "cd ./funcions && npm run serve",
-        "shell": "cd ./funcions && npm run shell",
-        "start": "cd ./funcions && npm run start",
-        "deploy": "cd ./funcions && npm run deploy",
-        "logs": "cd ./funcions && npm run logs"
+        "build": "cd ./functions && npm run build",
+        "serve": "cd ./functions && npm run serve",
+        "shell": "cd ./functions && npm run shell",
+        "start": "cd ./functions && npm run start",
+        "deploy": "cd ./functions && npm run deploy",
+        "logs": "cd ./functions && npm run logs"
     }
 }
