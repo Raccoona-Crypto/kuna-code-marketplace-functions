@@ -6,6 +6,17 @@ async function resolveUser(userBody: any): Promise<admin.firestore.DocumentSnaps
     let userDoc: admin.firestore.DocumentSnapshot = await userRef.get();
 
     if (userDoc.exists) {
+        const dataToUpdate: any = {};
+        if (userBody.name !== userDoc.get('name')) {
+            dataToUpdate.name = userBody.name;
+        }
+
+        if (userBody.telegram !== userDoc.get('contact')) {
+            dataToUpdate.contact = userBody.telegram;
+        }
+
+        userRef.update(userBody).catch(error => console.error(error));
+
         return userDoc;
     }
 
@@ -23,6 +34,4 @@ async function resolveUser(userBody: any): Promise<admin.firestore.DocumentSnaps
 }
 
 
-export default {
-    resolveUser,
-}
+export default { resolveUser };
