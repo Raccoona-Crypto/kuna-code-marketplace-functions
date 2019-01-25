@@ -25,7 +25,7 @@ export const getAllOffers = functions.https.onRequest(async (request, response) 
 
 
 export const addOffer = functions.https.onRequest(async (request, response) => {
-    const {body} = request;
+    const { body } = request;
 
     try {
         const userData = get(body, 'user');
@@ -36,8 +36,8 @@ export const addOffer = functions.https.onRequest(async (request, response) => {
 
         const userDoc = await UserProvider.resolveUser(userData);
         const offerObj = MappingUtils.createOffer(body, userDoc);
-
         const docRef = await App.db.collection('offers').add(offerObj);
+
         console.log('Document written with ID: ', docRef.id);
 
         response.send({
@@ -56,7 +56,7 @@ export const updateOffer = functions.https.onRequest(async (request, response) =
     if (!id) {
         throw new Error('ID is empty');
     }
-    const {body} = request;
+    const { body } = request;
 
     const offer: admin.firestore.DocumentSnapshot = await App.db.collection('offers').doc(id).get();
     if (!offer.exists) {
@@ -119,7 +119,7 @@ export const addRating = functions.https.onRequest(async (request, response) => 
         throw new Error('ID is empty');
     }
 
-    const {body} = request;
+    const { body } = request;
     const rating = MappingUtils.createRating(body);
 
     try {
@@ -144,7 +144,7 @@ export const updateRating = functions.https.onRequest(async (request, response) 
     if (!ratingId) {
         throw new Error('ratingId is empty');
     }
-    const {body} = request;
+    const { body } = request;
 
     const rating: admin.firestore.DocumentSnapshot = await App.db.collection('users').doc(userId).collection("ratings").doc(ratingId).get();
     if (!rating.exists) {
@@ -183,7 +183,7 @@ export const deleteRating = functions.https.onRequest(async (request, response) 
         throw new Error('ratingId is empty');
     }
 
-    const {body} = request;
+    const { body } = request;
     const rating = MappingUtils.createRating(body);
 
     try {
